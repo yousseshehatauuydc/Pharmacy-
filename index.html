@@ -195,12 +195,14 @@ function stat(r){const n=net(r),p=paid(r),b=n-p;
  if(p<=.005)return['آجل','bad','u'];const m=[...new Set(pays(r).map(x=>x.m))].join(' + ');
  return b>.5?['جزئي'+(m?' ('+m+')':''),'wn','p']:['مسدد'+(m?' — '+m:''),'ok','k']}
 /* ===== الحسابات (مصدر واحد للأرقام) ===== */
+const cdt=c=>{const d=c.d||'2026-11-01';return d<'2026-11-01'?'2026-11-01':d};
 function build(){IX={};const g=(s,k)=>((IX[s]=IX[s]||{})[k]=IX[s][k]||{g:0,rt:0,c:0,q:0});
  for(const D of Object.values(INV)){const s=D.s,y=D.y||2026,m=(D.m||1)-1,o=old(y,m);
   if(o){const x=g(s,ym(y,m));x.has=1;x.cl=+D.cl||0;x.op=+D.op||0}
   for(const r of D.rows||[]){if(r.h&&!o)continue;const x=g(s,ym(y,m));x.g+=r.a||0;x.rt+=r.r||0;x.c+=r.p||0;
    for(const p of pays(r)){const z=g(s,ymd(p.d||r.d));p.m=='شيك'?z.q+=p.a:z.c+=p.a}}
-  for(const p of D.ap||[]){const z=g(s,ymd(p.d));p.m=='شيك'?z.q+=p.a:z.c+=p.a}}}
+  for(const p of D.ap||[]){const z=g(s,ymd(p.d));p.m=='شيك'?z.q+=p.a:z.c+=p.a}}
+  for(const c of Object.values(CHQ)){if(c.inv||!c.s||!SUP[c.s])continue;g(c.s,ymd(cdt(c))).q+=+c.amt||0}}
 function calc(s,y,m){const x=(IX[s]||{})[ym(y,m)]||{g:0,rt:0,c:0,q:0};return{g:x.g,rt:x.rt,n:x.g-x.rt,cash:x.c,chq:x.q,has:x.has,cl0:x.cl,op0:x.op}}
 function opening(s,y,m){if(old(y,m))return null;let o=+SUP[s]?.open||0;for(let k=NOV;k<ym(y,m);k++){const c=calc(s,Math.floor(k/12),k%12);o+=c.n-c.cash-c.chq}return o}
 function sRow(s,y,m){const c=calc(s,y,m);
@@ -334,8 +336,8 @@ function openAp(s){delArm=0;const pm=`${S.y}-${pad(S.m+1)}`;dlg.dataset.s=s;dlg.
 <label>الطريقة<select id="am"><option>نقدي</option><option>شيك</option></select></label><label id="adw" hidden>تاريخ استحقاق الشيك<input id="adu" type="date"></label><label>التاريخ<input id="ad" type="date" value="${TS.startsWith(pm)?TS:pm+'-01'}" min="${pm}-01" max="${pm}-${pad(dim(S.y,S.m))}"></label><label>بيان<input id="at"></label>${btns('sa')}`;dlg.showModal()}
 function openChq(id){delArm=0;const c=id?CHQ[id]:{s:S.cs,due:TS,amt:'',dep:0,note:''},lk=!!c.inv;dlg.dataset.id=id||'';
  dlg.innerHTML=`<h3>${id?'تعديل شيك':'شيك جديد'}</h3>${lk?'<p class="warn">شيك مرتبط بفاتورة — القيمة والشركة تتعدل من الفاتورة.</p>':''}<label>الشركة<select id="cs_" ${lk?'disabled':''}><option value="">أخرى</option>${opts(c.s)}</select></label><label>اسم الشركة (إن كانت أخرى)<input id="cn" value="${E(c.nm||'')}" ${lk?'disabled':''}></label>
-<label>تاريخ الاستحقاق<input id="cd" type="date" value="${c.due}"></label><label>قيمة الشيك<input id="ca" type="number" step="0.01" min="0" value="${c.amt}" ${lk?'disabled':''}></label>
-<label>المودع<input id="cp" type="number" step="0.01" min="0" value="${c.dep}"></label><label>ملاحظات<input id="cx" value="${E(c.note||'')}"></label>${!lk?`<label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="cl_" ${id?'':'checked'}> سجّله كسداد للمورد (يخصم من المديونية ويظهر في كشف الحساب)</label><label>تاريخ السداد (تاريخ كتابة الشيك)<input id="cpd" type="date" value="${TS<'2026-11-01'?'2026-11-01':TS}" min="2026-11-01"></label>`:''}${btns('sc',id&&!lk?'dc':'')}`;dlg.showModal()}
+${lk?'':`<label>تاريخ إصدار الشيك (من هنا بيتخصم من حساب المورد)<input id="ci" type="date" value="${c.d||(id?'2026-11-01':TS)}"></label>`}<label>تاريخ الاستحقاق<input id="cd" type="date" value="${c.due}"></label><label>قيمة الشيك<input id="ca" type="number" step="0.01" min="0" value="${c.amt}" ${lk?'disabled':''}></label>
+<label>المودع<input id="cp" type="number" step="0.01" min="0" value="${c.dep}"></label><label>ملاحظات<input id="cx" value="${E(c.note||'')}"></label>${btns('sc',id&&!lk?'dc':'')}`;dlg.showModal()}
 function openSup(s){delArm=0;const c=s?SUP[s]:{name:'',kind:'cheque',open:0};dlg.dataset.s=s||'';
  dlg.innerHTML=`<h3>${s?'تعديل مورد':'مورد جديد'}</h3><label>الاسم<input id="sname" value="${E(c.name)}"></label><label>النوع<select id="skind"><option value="cheque" ${c.kind=='cheque'?'selected':''}>شركة / شيكات</option><option value="cash" ${c.kind=='cash'?'selected':''}>مخزن / نقدي</option></select></label>
 <label>الرصيد الافتتاحي (قبل أول فاتورة جديدة في نوفمبر 2026)<input id="sopen" type="number" step="0.001" value="${c.open}"></label>${btns('ss')}`;dlg.showModal()}
@@ -415,7 +417,7 @@ document.addEventListener('click',async e=>{if(e.target===dlg)return dlg.close()
  else if(a=='nc')openChq();else if(a=='ec')openChq(d.id);
  else if(a=='sc'){const id=dlg.dataset.id,c0=id?CHQ[id]:null,s=c0?.inv?c0.s:$('#cs_').value,amt=c0?.inv?c0.amt:r2($('#ca').value),dep=r2($('#cp').value),due=$('#cd').value;
   if(!due||amt<=0)return toast('اكتب الاستحقاق والقيمة');if(dep>amt)return toast('المودع أكبر من قيمة الشيك');
-  const o={...(c0||{}),s,nm:s?'':(c0?.inv?'':$('#cn').value.trim()),due,amt,dep:due<=TS?amt:dep,note:$('#cx').value.trim()},nid=id||'c'+Date.now().toString(36);const lnk=!c0?.inv&&s&&$('#cl_')&&$('#cl_').checked,pd_=lnk?$('#cpd').value:'';if(lnk&&(!pd_||pd_<'2026-11-01'))return toast('اختار تاريخ السداد (من 1 نوفمبر 2026)');if(lnk){o.inv=1;o.note=o.note||'سداد بشيك'}dlg.close();CHQ[nid]=o;draw();await w('chq/'+nid,o);if(lnk){const py=+pd_.slice(0,4),pm_=+pd_.slice(5,7)-1,D=MD(s,py,pm_);await put(s,py,pm_,D.rows,[...(D.ap||[]),{a:amt,m:'شيك',d:pd_,t:$('#cx').value.trim(),q:nid}])}}
+  const o={...(c0||{}),s,nm:s?'':(c0?.inv?'':$('#cn').value.trim()),due,amt,dep:due<=TS?amt:dep,note:$('#cx').value.trim(),...(c0?.inv?{}:{d:($('#ci')||{}).value||TS})},nid=id||'c'+Date.now().toString(36);dlg.close();CHQ[nid]=o;draw();w('chq/'+nid,o)}
  else if(a=='dc'){if(!delArm){delArm=1;b.textContent='تأكيد الحذف';return}delArm=0;const id=dlg.dataset.id;dlg.close();delete CHQ[id];draw();try{await db.doc('chq/'+id).delete()}catch(x){toast('تعذر الحذف')}}
  else if(a=='ns')openSup();else if(a=='es')openSup(d.s);
  else if(a=='ss'){const n=$('#sname').value.trim();if(!n)return toast('اكتب الاسم');const id=dlg.dataset.s||'s'+Date.now().toString(36),o={name:n,kind:$('#skind').value,open:Math.round((+$('#sopen').value||0)*1000)/1000};dlg.close();SUP[id]=o;draw();w('sup/'+id,o)}
@@ -437,6 +439,7 @@ function stmt(s,fr,to){const fy=+fr.slice(0,4),fm=+fr.slice(5)-1,ty=+to.slice(0,
    if(!r.h&&r.d>=a&&r.d<=z){if(r.a)ev.push({d:r.d,k:'فاتورة',n:r.n||'',t:r.t||'',db:r.a,cr:0,o:0});if(r.r)ev.push({d:r.d,k:r.a?'مرتجع / خصم':'إشعار مرتجع',n:r.n||'',t:r.t||'',db:0,cr:r.r,o:1});if(r.p)ev.push({d:r.d,k:'مسدد سابقاً',n:r.n||'',t:'',db:0,cr:r.p,o:2})}
    for(const p of pays(r)){const pd=p.d||r.d;if(pd>=a&&pd<=z)ev.push({d:pd,k:p.m=='شيك'?'سداد بشيك':'سداد نقدي',n:r.n||'',t:p.m=='شيك'&&p.q&&CHQ[p.q]?'استحقاق '+CHQ[p.q].due:'',db:0,cr:p.a,o:2})}}
   for(const p of D.ap||[])if(p.d>=a&&p.d<=z)ev.push({d:p.d,k:'سداد على الحساب'+(p.m=='شيك'?' (شيك)':''),n:'',t:p.t||(p.m=='شيك'&&p.q&&CHQ[p.q]?'استحقاق '+CHQ[p.q].due:''),db:0,cr:p.a,o:2})}
+ for(const c of Object.values(CHQ)){if(c.inv||c.s!=s)continue;const d=cdt(c);if(d>=a&&d<=z)ev.push({d,k:'سداد بشيك',n:'',t:'استحقاق '+c.due+(c.note?' — '+c.note:''),db:0,cr:+c.amt||0,o:2})}
  ev.sort((x,y)=>x.d<y.d?-1:x.d>y.d?1:x.o-y.o);const op=opening(s,fy,fm);let b=op;ev.forEach(e=>{b+=e.db-e.cr;e.b=b});
  return{op,ev,db:sum(ev,e=>e.db),cr:sum(ev,e=>e.cr),cl:b}}
 function vStm(){const s=S.stm,nm=SUP[s].name,opts=[];for(let y=2026;y<=2028;y++)for(let m=(y==2026?10:0);m<12;m++)opts.push(`${y}-${pad(m+1)}`);
